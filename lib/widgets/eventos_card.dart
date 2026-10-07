@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 
 class EventosCard extends StatelessWidget {
@@ -7,9 +6,6 @@ class EventosCard extends StatelessWidget {
   final String local;
   final String data;
   final String descricao;
-  final VoidCallback? onEditar;
-  final VoidCallback? onExcluir;
-  final VoidCallback? onFavoritar;
 
   const EventosCard({
     super.key,
@@ -18,12 +14,19 @@ class EventosCard extends StatelessWidget {
     required this.local,
     required this.data,
     required this.descricao,
-    this.onEditar,
-    this.onExcluir,
-    this.onFavoritar,
   });
 
   Widget _buildImagem() {
+    if (imagem.isEmpty) {
+      return Container(
+        height: 200,
+        width: double.infinity,
+        color: Colors.grey.shade300,
+        alignment: Alignment.center,
+        child: const Icon(Icons.image_not_supported, size: 48),
+      );
+    }
+
     if (imagem.startsWith('assets/')) {
       return Image.asset(
         imagem,
@@ -32,14 +35,18 @@ class EventosCard extends StatelessWidget {
         fit: BoxFit.cover,
       );
     }
-    return Image.file(
-      File(imagem),
+
+    // imagens vindas da API são URLs (http/https) — funciona em qualquer plataforma, inclusive web
+    return Image.network(
+      imagem,
       height: 200,
       width: double.infinity,
       fit: BoxFit.cover,
       errorBuilder: (context, error, stackTrace) => Container(
         height: 200,
+        width: double.infinity,
         color: Colors.grey.shade300,
+        alignment: Alignment.center,
         child: const Icon(Icons.broken_image, size: 48),
       ),
     );
@@ -50,6 +57,8 @@ class EventosCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.all(12),
       elevation: 5,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -72,32 +81,6 @@ class EventosCard extends StatelessWidget {
                 Text("Data e hora $data"),
                 const SizedBox(height: 8),
                 Text(descricao),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (onEditar != null)
-                        IconButton(
-                          onPressed: onEditar,
-                          icon: const Icon(
-                            Icons.edit,
-                            color: Colors.deepPurple,
-                          ),
-                        ),
-                      if (onExcluir != null)
-                        IconButton(
-                          onPressed: onExcluir,
-                          icon: const Icon(Icons.delete, color: Colors.red),
-                        ),
-                      if (onEditar == null && onExcluir == null)
-                        IconButton(
-                          onPressed: onFavoritar,
-                          icon: const Icon(Icons.favorite, color: Colors.red),
-                        ),
-                    ],
-                  ),
-                ),
               ],
             ),
           ),

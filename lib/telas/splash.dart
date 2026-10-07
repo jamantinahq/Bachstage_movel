@@ -3,7 +3,7 @@ import '../controle/usuarioController.dart';
 
 class Splash extends StatefulWidget {
   const Splash({super.key});
-//espera o tempo e apos isso leva para a tela de login
+  //espera o tempo e apos isso leva para a tela de login
   @override
   State<Splash> createState() => _Contador();
 }
@@ -17,8 +17,9 @@ class _Contador extends State<Splash> {
       await verificarLogin();
     });
   }
-  Future <void>verificarLogin() async{
-    final logado = await UsuarioController.verificaLoginOffline();
+
+  Future<void> verificarLogin() async {
+    final logado = await UsuarioController.estaLogado();
     if (logado) {
       Navigator.pushReplacementNamed(context, '/principal');
     } else {

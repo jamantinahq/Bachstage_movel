@@ -24,10 +24,7 @@ class _LoginState extends State<Login> {
     if (_formKey.currentState!.validate()) {
       final email = _emailController.text;
       final senha = _senhaController.text;
-      final autenticado = await UsuarioController.verificaLoginOnline(
-        email,
-        senha,
-      );
+      final autenticado = await UsuarioController.login(email, senha);
       if (autenticado) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Login realizado com sucesso!')),

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../widgets/eventos_card.dart';
 import '../modelo/classes/evento.dart';
 import '../controle/eventoController.dart';
 import '../controle/usuarioController.dart';
-import '../controle/favoritosController.dart';
 
 class Eventos extends StatefulWidget {
   const Eventos({super.key});
@@ -13,80 +13,80 @@ class Eventos extends StatefulWidget {
 }
 
 class _EventosState extends State<Eventos> {
-  List<Evento> _todosEventos = []; 
-  List<Evento> _eventosFiltrados = []; 
+  List<Evento> _eventos = [];
+  DateTime? _ultimaAtualizacao;
+  bool _carregando = true;
+  bool _semConexao = false;
 
   @override
   void initState() {
     super.initState();
-    carregarEventos();
+    atualizar();
   }
-
-  Future<void> carregarEventos() async {
-    final eventos = await EventoController.listarEventos();
+  Future<void> atualizar() async {
+    setState(() => _carregando = true);
+    final tokenSalvo = await UsuarioController.tokenAtual();
+    final sucesso = tokenSalvo != null ? await EventoController.baixarEventos(tokenSalvo) : false;
+    final eventosLocais = await EventoController.listarEventos();
+    final ultimaAtualizacao = await UsuarioController.ultimaAtualizacao();
     setState(() {
-      _todosEventos = eventos;
-      _eventosFiltrados = eventos;
+      _eventos = eventosLocais;
+      _ultimaAtualizacao = ultimaAtualizacao;
+      _carregando = false;
+      _semConexao = !sucesso;
     });
   }
-
-    Future<void> favoritarEvento(Evento evento) async {
-    final usuario = await UsuarioController.usuarioLogado();
-    if (usuario == null) return;
-
-    final id = DateTime.now().millisecondsSinceEpoch;
-    await FavoritosController.adicionarFavorito(id, usuario.id, evento.id);
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Adicionado aos favoritos!")),
-    );
-  }
-
-  void buscar(String termo) {
-    setState(() {
-      _eventosFiltrados = _todosEventos
-          .where((e) => e.nome.toLowerCase().contains(termo.toLowerCase()))
-          .toList();
-    });
-  }
-
-  @override
+    @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Eventos")),
+      appBar: AppBar(
+        title: const Text("Eventos"),
+        actions: [
+          IconButton(
+            onPressed: atualizar,
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
+      ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: "Pesquisar evento...",
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
+          if (_semConexao)
+            Container(
+              width: double.infinity,
+              color: Colors.red.shade100,
+              padding: const EdgeInsets.all(8),
+              child: const Text(
+                "Sem conexão com o servidor. Mostrando os últimos eventos salvos.",
+                style: TextStyle(color: Colors.red),
+                textAlign: TextAlign.center,
               ),
-              onChanged: buscar,
             ),
-          ),
+          if (_ultimaAtualizacao != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Text(
+                "Última atualização: ${DateFormat('dd/MM/yyyy HH:mm').format(_ultimaAtualizacao!)}",
+                style: const TextStyle(color: Colors.grey, fontSize: 13),
+              ),
+            ),
           Expanded(
-            child: _eventosFiltrados.isEmpty
-                ? const Center(child: Text("Nenhum evento encontrado."))
-                : ListView.builder(
-                    itemCount: _eventosFiltrados.length,
-                    itemBuilder: (context, index) {
-                      final evento = _eventosFiltrados[index];
-                      return EventosCard(
-                        imagem: evento.imagem,
-                        nome: evento.nome,
-                        local: evento.local,
-                        data: evento.data,
-                        descricao: evento.descricao,
-                        onFavoritar: () => favoritarEvento(evento),
-                      );
-                    },
-                  ),
+            child: _carregando
+                ? const Center(child: CircularProgressIndicator())
+                : _eventos.isEmpty
+                    ? const Center(child: Text("Nenhum evento disponível."))
+                    : ListView.builder(
+                        itemCount: _eventos.length,
+                        itemBuilder: (context, index) {
+                          final evento = _eventos[index];
+                          return EventosCard(
+                            imagem: evento.imagem,
+                            nome: evento.nome,
+                            local: evento.local,
+                            data: evento.data,
+                            descricao: evento.descricao,
+                          );
+                        },
+                      ),
           ),
         ],
       ),

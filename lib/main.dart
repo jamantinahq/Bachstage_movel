@@ -17,6 +17,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
+      debugShowCheckedModeBanner: false,
       //mapeia as rotas do app
       initialRoute: '/',
       routes: {
